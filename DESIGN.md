@@ -74,43 +74,20 @@ of it) is still unbuilt, see below.
 
 ## What's still open (radio adapter + game flow - not started)
 
-The physical game has mechanics that don't map onto a badge 1:1 without a
-decision. Notes so far, not commitments:
+Tracked as issues rather than just prose here, so this doesn't drift out of
+sync with actual status:
 
-- **The actual ESP-NOW adapter.** `proximity.py` is deliberately radio-free
-  and tested without hardware; something still needs to actually send/receive
-  presence beacons and the point-to-point rank-reveal exchange over ESP-NOW,
-  call into `ProximityTracker` and `engine.resolve()`, and apply the outcome.
-  Untested until it's running on real (or simulated) badges.
-- **Reveal-exchange freshness.** Once two peers are close, both need to send
-  their rank to each other once, resolve, and apply the outcome exactly once
-  - and a stale/replayed message (e.g. from a peer that already lost and
-  redrew) shouldn't be able to fake a result. Needs something like Foxhunt's
-  `encounter_key` (a value derived from both sides' session ids, so both
-  peers agree on the same one-shot key for a given approach) plus a rank
-  "generation" counter that bumps every time a badge redraws, so an old
-  reveal can't be replayed after the rank it named is no longer live.
-- **"Return to base for a new card."** In the physical game, losing your
-  encounter means walking back to base and drawing a new random rank - that
-  round-trip is part of what makes it an *active outdoor* game, not just an
-  app. Digitally, does losing require physically reaching a base beacon to
-  redraw (preserves the physical pacing), or does the badge just reassign
-  instantly (loses that pacing, but removes a failure mode where a base
-  beacon is out of range/dead)?
-- **Flag capture.** The physical flag is a real hidden object. Digital
-  equivalent candidates: a badge carried by a designated "flag holder" that
-  the other team must find and tag; a fixed base-beacon representing the
-  flag's position; or keep the flag physical and only digitize rank combat.
-- **Team assignment & army distribution.** Who assigns ranks - a game-master
-  badge/console distributing the shuffled army over the air at kickoff, or
-  does each badge just self-assign from a shared seed? Affects whether cheating
-  (peeking at your own rank before choosing when to reveal it, which is
-  already possible in the physical game too) needs any mitigation.
-- **Theming.** "Maffiakamp" turned out to be undocumented online beyond a
-  one-line pitch on Scoutpedia (mafia-family ranks/statuses, no published
-  hierarchy) - see the chat history for the full research. Any theme is just
-  a new `RANKS`-shaped list once the engine's stable, so this is deliberately
-  not blocking the core work.
+- [#1 Build the ESP-NOW radio adapter](https://github.com/tjorim/levend-stratego-mpos/issues/1) -
+  send/receive the presence beacon and point-to-point reveal exchange, wire
+  into `ProximityTracker` and `engine.resolve()`. Depends on #2.
+- [#2 Reveal-exchange freshness (anti-replay)](https://github.com/tjorim/levend-stratego-mpos/issues/2) -
+  a stale/replayed reveal shouldn't be able to fake a result. Blocks #1's
+  wire format.
+- [#3 Return to base for a new rank: physical round-trip or instant?](https://github.com/tjorim/levend-stratego-mpos/issues/3)
+- [#4 Digital equivalent of flag capture](https://github.com/tjorim/levend-stratego-mpos/issues/4)
+- [#5 Who assigns ranks and distributes the army?](https://github.com/tjorim/levend-stratego-mpos/issues/5)
+- [#6 Theming (mafia or otherwise)](https://github.com/tjorim/levend-stratego-mpos/issues/6) -
+  deliberately deferred, not blocking anything above.
 
 ## Running the tests
 
