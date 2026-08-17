@@ -109,15 +109,78 @@ now `{mac, session, generation, rank_level, encounter_key}`, and
 `RevealGuard.accept()` is the one gate every inbound reveal must pass before
 its rank is trusted enough to call `engine.resolve()`.
 
-## What's still open (radio adapter + game flow - not started)
+## What's implemented (`radio.py`, `test_radio.py`)
+
+**Settles #1.** `radio.py` is the over-the-air layer, split into two pieces
+on purpose:
+
+- `RadioAdapter` is transport-agnostic protocol/state-machine logic: it
+  broadcasts the rank-free presence beacon on `send_beacon()`, feeds every
+  inbound beacon into `ProximityTracker.seen()`/`.tick()`, and once
+  `closest_ready()` names a peer, sends that peer (and only that peer) a
+  point-to-point reveal built from `reveal.encounter_key()`. An inbound
+  reveal is run through `RevealGuard.accept()`; once both this badge's own
+  reveal has gone out and the peer's has passed the guard,
+  `engine.resolve()` is called exactly once and the outcome is handed to a
+  caller-supplied `on_result(peer_mac, outcome)` callback - applying that
+  outcome to game state (removing pieces, triggering a redraw, ...) is left
+  to #3/#4/#5, not this module. Transport is injected as a
+  `send(mac, payload)` callable, which is what makes this half unit-
+  testable (`test_radio.py`) without any real radio: a small in-process
+  "world" wires two `RadioAdapter`s together and drives a full
+  beacon-then-reveal-then-resolve exchange, including the replay/no-redraw
+  edge cases `RevealGuard` is meant to catch.
+- `ESPNowTransport` is the actual MicroPython `espnow`/`network` binding -
+  thin on purpose, it only turns `espnow`'s send/recv into the
+  `(mac, rssi, payload)` shape `RadioAdapter` expects. This half can't be
+  unit tested off-device (no `espnow` module under CPython, no way to
+  simulate real RSSI), which is the untestable piece #1 called out - see
+  the manual test plan below.
+
+Wire format is two pipe-delimited message types (no json dependency, keeps
+payloads well under ESP-NOW's ~250 byte limit): a beacon is
+`B|<mac>|<session>`, a reveal is
+`R|<mac>|<session>|<generation>|<rank_level>|<encounter_key>` - the fields
+#2 settled, in the order `reveal.py` expects them.
+
+### Manual/on-device test plan
+
+Needs at least two real (or simulated) badges running MicroPython with
+`espnow` support, since this is the one layer that can't be exercised under
+plain CPython:
+
+1. **Beacon send/receive** - two badges powered on near each other; confirm
+   each sees the other show up in `tracker.peers` (log it) with a
+   plausible RSSI, and that `peer.streak` climbs to `CLOSE_STREAK` as they
+   stay close.
+2. **Presence beacon stays rank-free** - sniff the air (or log every
+   outbound `send_beacon()` payload) and confirm it only ever contains
+   `mac`/`session`, never a rank, matching the security note in
+   `proximity.py`.
+3. **Reveal triggers exactly once per approach** - walk two badges together
+   until `closest_ready()` fires; confirm both badges' `on_result` fires
+   exactly once with the outcome `engine.resolve()` would produce for their
+   two ranks, and that standing close afterward doesn't re-trigger it.
+4. **Separate and re-approach** - step apart until RSSI drops and `tracker`
+   ages the peer out or resets its streak, then re-approach: confirm no
+   second resolve happens without a redraw (expected per the freshness
+   design, see `RadioAdapter`'s docstring), matching
+   `test_reapproaching_without_a_redraw_does_not_re_resolve`.
+5. **Range/RSSI sanity** - confirm `CLOSE_DBM` in `proximity.py` is actually
+   a reasonable "arm's length" threshold for the badges' real antennas
+   (tune if two badges across a room falsely trigger, or two badges
+   touching don't).
+6. **`peers_table` availability** - confirm the running MicroPython/esp-idf
+   build actually exposes `ESPNow.peers_table` for RSSI (see
+   `ESPNowTransport._peer_rssi`'s fallback) - if it doesn't on the target
+   port, closeness detection needs a different RSSI source before this is
+   camp-ready.
+
+## What's still open (game flow - not started)
 
 Tracked as issues rather than just prose here, so this doesn't drift out of
 sync with actual status:
 
-- [#1 Build the ESP-NOW radio adapter](https://github.com/tjorim/levend-stratego-mpos/issues/1) -
-  send/receive the presence beacon and point-to-point reveal exchange, wire
-  into `ProximityTracker`, `RevealGuard`, and `engine.resolve()`. No longer
-  blocked - #2 settled the wire format.
 - [#3 Return to base for a new rank: physical round-trip or instant?](https://github.com/tjorim/levend-stratego-mpos/issues/3) -
   also decides where the rank generation counter `reveal.py` expects gets
   bumped.
@@ -132,8 +195,11 @@ sync with actual status:
 python3 test_engine.py
 python3 test_proximity.py
 python3 test_reveal.py
+python3 test_radio.py
 ```
 
 No dependencies - runs under plain CPython during design, and the same
-`ranks.py`/`engine.py`/`proximity.py`/`reveal.py` should run unmodified
-under MicroPython once wired into a badge app.
+`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py` should run
+unmodified under MicroPython once wired into a badge app (`radio.py`'s
+`ESPNowTransport` is the one piece that only actually runs on-device -
+see its manual test plan above).
