@@ -72,6 +72,43 @@ one-time reveal once `closest_ready()` says two peers are actually close -
 that reveal-and-resolve exchange (`engine.resolve()` sits on the other end
 of it) is still unbuilt, see below.
 
+## What's implemented (`reveal.py`, `test_reveal.py`)
+
+**Decided (#2): freshness is `encounter_key` + a per-badge rank
+generation counter**, following `foxhunt-recovered`'s `encounter_key`
+pattern rather than inventing real cryptographic authentication - this is a
+scout-camp minigame over unencrypted ESP-NOW, and there's no shared secret
+to build actual message authentication on. The goal is narrower: a captured,
+once-genuinely-valid reveal message shouldn't be replayable to fake a
+result, either against a third party who was never part of the original
+encounter, or against the same peer again after they've moved on to a new
+rank.
+
+Two pieces, both pure/testable in `reveal.py`:
+
+- `encounter_key(session_a, session_b)` - a value both peers compute
+  independently (each already knows its own session id and learns the
+  peer's from the presence beacon `proximity.py` already tracks), order-
+  independent so no handshake round-trip is needed. It identifies one
+  specific pairing of *live badge instances*: a reveal captured from an
+  A-vs-B encounter carries a key that only ever matches
+  `encounter_key(A's session, B's session)`, never a third party's, and a
+  reboot changes a badge's session id, so pre-reboot messages stop matching
+  too.
+- A **rank generation** counter, owned by whichever code holds "my current
+  rank" (the redraw flow, #3 - not built yet): starts at 0 for the rank
+  dealt at kickoff, bumps every time that badge's rank is reassigned. Every
+  reveal names the sender's current generation. `RevealGuard` remembers the
+  highest generation it has already accepted per (peer mac, peer session)
+  and rejects anything at or below that, so a reveal naming a rank the
+  sender has since redrawn away from can't be replayed to fake a later
+  result against the same peer either.
+
+This settles #2 and unblocks #1: the wire format for a reveal message is
+now `{mac, session, generation, rank_level, encounter_key}`, and
+`RevealGuard.accept()` is the one gate every inbound reveal must pass before
+its rank is trusted enough to call `engine.resolve()`.
+
 ## What's still open (radio adapter + game flow - not started)
 
 Tracked as issues rather than just prose here, so this doesn't drift out of
@@ -79,11 +116,11 @@ sync with actual status:
 
 - [#1 Build the ESP-NOW radio adapter](https://github.com/tjorim/levend-stratego-mpos/issues/1) -
   send/receive the presence beacon and point-to-point reveal exchange, wire
-  into `ProximityTracker` and `engine.resolve()`. Depends on #2.
-- [#2 Reveal-exchange freshness (anti-replay)](https://github.com/tjorim/levend-stratego-mpos/issues/2) -
-  a stale/replayed reveal shouldn't be able to fake a result. Blocks #1's
-  wire format.
-- [#3 Return to base for a new rank: physical round-trip or instant?](https://github.com/tjorim/levend-stratego-mpos/issues/3)
+  into `ProximityTracker`, `RevealGuard`, and `engine.resolve()`. No longer
+  blocked - #2 settled the wire format.
+- [#3 Return to base for a new rank: physical round-trip or instant?](https://github.com/tjorim/levend-stratego-mpos/issues/3) -
+  also decides where the rank generation counter `reveal.py` expects gets
+  bumped.
 - [#4 Digital equivalent of flag capture](https://github.com/tjorim/levend-stratego-mpos/issues/4)
 - [#5 Who assigns ranks and distributes the army?](https://github.com/tjorim/levend-stratego-mpos/issues/5)
 - [#6 Theming (mafia or otherwise)](https://github.com/tjorim/levend-stratego-mpos/issues/6) -
@@ -94,8 +131,9 @@ sync with actual status:
 ```
 python3 test_engine.py
 python3 test_proximity.py
+python3 test_reveal.py
 ```
 
 No dependencies - runs under plain CPython during design, and the same
-`ranks.py`/`engine.py`/`proximity.py` should run unmodified under MicroPython
-once wired into a badge app.
+`ranks.py`/`engine.py`/`proximity.py`/`reveal.py` should run unmodified
+under MicroPython once wired into a badge app.

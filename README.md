@@ -6,9 +6,9 @@ hold your secret rank and resolve encounters over radio instead of paper
 cards. Early design/prototype stage for a future Fri3d Camp edition.
 
 **Status:** core rank hierarchy + encounter-resolution engine
-(`ranks.py`, `engine.py`) and proximity/closeness detection (`proximity.py`)
-done and tested. ESP-NOW radio adapter, game flow, and theming not started
-yet.
+(`ranks.py`, `engine.py`), proximity/closeness detection (`proximity.py`),
+and reveal-exchange freshness / anti-replay (`reveal.py`) done and tested.
+ESP-NOW radio adapter, game flow, and theming not started yet.
 
 - [`RULES.md`](RULES.md) — how the game actually plays, for whoever's running
   or playing it at camp.
@@ -19,4 +19,5 @@ yet.
 ```
 python3 test_engine.py
 python3 test_proximity.py
+python3 test_reveal.py
 ```
