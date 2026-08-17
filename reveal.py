@@ -39,8 +39,9 @@ Two building blocks, mirroring foxhunt-recovered's encounter_key:
   even against the same peer in the same session.
 
 What this module does *not* decide: where the generation counter lives and
-who bumps it (that's the redraw flow, issue #3) or the actual wire format
-of the reveal message (issue #1, now unblocked by this design).
+who bumps it (that's the redraw flow, settled in `redraw.py` - see #3) or
+the actual wire format of the reveal message (issue #1, now unblocked by
+this design).
 """
 
 import hashlib

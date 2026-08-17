@@ -103,9 +103,9 @@ class RadioAdapter:
     """Ties ProximityTracker + RevealGuard + engine.resolve() to a transport.
 
     `rank_level` and `generation` are public and mutable rather than fixed at
-    construction: they belong to the not-yet-built redraw flow (#3) and rank
-    assignment (#5), which update them as the game proceeds. `on_result`, if
-    set, is called as `on_result(peer_mac, outcome)` once an encounter
+    construction: they belong to the redraw flow (`redraw.py`, settled in
+    #3) and rank assignment (#5), which update them as the game proceeds.
+    `on_result`, if set, is called as `on_result(peer_mac, outcome)` once an encounter
     resolves, with `outcome` being one of engine.A_WINS/B_WINS/BOTH_LOSE from
     *this* badge's perspective (A = self, B = peer) - applying that outcome
     to game state (removing pieces, triggering a redraw, ...) is up to the

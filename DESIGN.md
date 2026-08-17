@@ -96,7 +96,7 @@ Two pieces, both pure/testable in `reveal.py`:
   reboot changes a badge's session id, so pre-reboot messages stop matching
   too.
 - A **rank generation** counter, owned by whichever code holds "my current
-  rank" (the redraw flow, #3 - not built yet): starts at 0 for the rank
+  rank" (the redraw flow, settled below in `redraw.py` - see #3): starts at 0 for the rank
   dealt at kickoff, bumps every time that badge's rank is reassigned. Every
   reveal names the sender's current generation. `RevealGuard` remembers the
   highest generation it has already accepted per (peer mac, peer session)
@@ -176,14 +176,68 @@ plain CPython:
    port, closeness detection needs a different RSSI source before this is
    camp-ready.
 
+## What's implemented (`redraw.py`, `test_redraw.py`)
+
+**Decided (#3): physical round-trip, not instant reassignment.** Losing
+(or drawing - `engine.BOTH_LOSE` counts too, both sides lose) disarms a
+badge: it holds no live rank until it physically returns to its team's
+base and gets in range of a base beacon, at which point it redraws. This
+keeps the pacing the physical paper-card game already has - losing costs
+you the walk back - matching the bias the rest of this project already has
+toward keeping proximity and movement real (see `proximity.py`'s
+continuous-broadcast design) rather than collapsing everything into pure
+message-passing. The alternative (instant reassignment) was simpler and
+more robust against a base beacon dying or dropping out of range mid-game,
+but loses that pacing entirely - accepted as a known limitation instead:
+run more than one base beacon per team so a single failed beacon doesn't
+strand a team, the same way you wouldn't run a whole camp off one radio
+anyway. This mirrors how the Bomb's stationary rule (RULES.md) is already
+an honor-system limit this project accepts rather than tries to solve in
+code.
+
+A base isn't a new wire concept - it just broadcasts the same rank-free
+presence beacon `radio.py` already defines (`encode_beacon()`), so
+`proximity.ProximityTracker` sees it exactly like a player peer with no
+changes to that module needed. What makes something a *base* rather than a
+player is purely local: each badge is configured (at kickoff, alongside
+#5's rank distribution) with the set of its own team's base session ids/
+macs.
+
+Two pieces, both pure/testable in `redraw.py`:
+
+- `RedrawState` holds one badge's own `rank_level`/`generation` (the same
+  fields `radio.RadioAdapter` already exposes for exactly this purpose,
+  see its docstring) plus a `disarmed` flag. `lose()` disarms it;
+  `redraw(rng=random)` is a no-op while armed (so idling near base doesn't
+  burn a redraw) and otherwise draws a fresh rank uniformly from
+  `ranks.standard_army()` (so the odds match the physical game's piece
+  counts) and bumps `generation` so `reveal.RevealGuard` rejects any stale
+  reveal still naming the old rank.
+- `BaseTracker` answers "am I close enough to a base to redraw right now,"
+  reusing the same `ProximityTracker` closeness signal (streak ≥
+  `CLOSE_STREAK`) player encounters already use rather than inventing a
+  second one - a base's beacon is tracked in the exact same `tracker.peers`
+  table as everyone else's.
+
+Not solved here, left as a known simplification tied to #5 (army
+distribution): `redraw()` draws independently each time rather than
+tracking a shared pool of pieces already issued, so in principle (rare
+with 59 pieces per side) two badges could simultaneously hold the same
+rank after redraws - same as could already happen with the initial deal if
+#5's answer doesn't track a shared pool either.
+
+Wiring `redraw.py` into `radio.RadioAdapter` (disarming on a losing
+`on_result`, redrawing once `BaseTracker.at_base()` is true, and copying
+the result back into `radio_adapter.rank_level`/`.generation`) is left to
+the badge's main loop, not this module - matching how `RadioAdapter`
+itself takes `rank_level`/`generation` as plain mutable fields rather than
+owning their lifecycle.
+
 ## What's still open (game flow - not started)
 
 Tracked as issues rather than just prose here, so this doesn't drift out of
 sync with actual status:
 
-- [#3 Return to base for a new rank: physical round-trip or instant?](https://github.com/tjorim/levend-stratego-mpos/issues/3) -
-  also decides where the rank generation counter `reveal.py` expects gets
-  bumped.
 - [#4 Digital equivalent of flag capture](https://github.com/tjorim/levend-stratego-mpos/issues/4)
 - [#5 Who assigns ranks and distributes the army?](https://github.com/tjorim/levend-stratego-mpos/issues/5)
 - [#6 Theming (mafia or otherwise)](https://github.com/tjorim/levend-stratego-mpos/issues/6) -
@@ -196,10 +250,11 @@ python3 test_engine.py
 python3 test_proximity.py
 python3 test_reveal.py
 python3 test_radio.py
+python3 test_redraw.py
 ```
 
 No dependencies - runs under plain CPython during design, and the same
-`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py` should run
-unmodified under MicroPython once wired into a badge app (`radio.py`'s
+`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py`/`redraw.py`
+should run unmodified under MicroPython once wired into a badge app (`radio.py`'s
 `ESPNowTransport` is the one piece that only actually runs on-device -
 see its manual test plan above).

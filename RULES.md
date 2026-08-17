@@ -67,12 +67,19 @@ area and learn who's weak or strong before actually meeting them. That's true
 to the physical game too, where the only way to learn someone's rank is to
 actually meet them and reveal.
 
-## 🚧 Losing an encounter
+## Losing an encounter
 
-[Issue #3](https://github.com/tjorim/levend-stratego-mpos/issues/3) — not
-decided yet whether you need to physically walk back to a base to get a new
-rank (matching the physical game's pacing) or your badge just reassigns you
-one on the spot.
+Lose — or draw; a tie means *both* of you lose — and your badge locks you
+out. You're not carrying a live rank anymore, so you can't trigger (or be
+part of) another encounter until you walk back to your team's base and get
+in range of a base beacon there, which draws you a brand new random rank
+from the same odds everyone started with. That's the same pacing the
+paper-card original has: losing costs you the walk back, not just a tap on
+a screen.
+
+If your team's base only has one beacon, ask whoever's running the game —
+camps should run more than one per team, so a dead battery or a beacon
+that's briefly out of range doesn't strand anyone mid-game.
 
 ## 🚧 Winning the game
 
