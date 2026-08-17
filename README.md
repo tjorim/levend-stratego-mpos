@@ -8,8 +8,13 @@ cards. Early design/prototype stage for a future Fri3d Camp edition.
 **Status:** core rank hierarchy + encounter-resolution engine
 (`ranks.py`, `engine.py`) and proximity/closeness detection (`proximity.py`)
 done and tested. ESP-NOW radio adapter, game flow, and theming not started
-yet — see [`DESIGN.md`](DESIGN.md) for what's decided, what's open, and
-sources for the physical game's rules.
+yet.
+
+- [`RULES.md`](RULES.md) — how the game actually plays, for whoever's running
+  or playing it at camp.
+- [`DESIGN.md`](DESIGN.md) — the engineering side: what's decided, what's
+  open (tracked as [issues](https://github.com/tjorim/levend-stratego-mpos/issues)),
+  sources for the physical game's rules.
 
 ```
 python3 test_engine.py
