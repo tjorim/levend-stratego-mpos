@@ -25,9 +25,10 @@ Marshal (1 per team) → General (4) → Major (6) → Captain (7) → Lieutenan
 Plus the Bomb (6 per team), which sits outside the ladder entirely — see
 below. 59 ranks per team in total.
 
-**The rule: higher rank wins. Equal ranks meeting: both lose.** Three
-exceptions to learn by heart, since they're the only ranks that *don't*
-simply follow the ladder above:
+**The rule: higher rank wins. Equal ranks meeting: both lose.** The Marshal
+is the top of the ladder, but that does *not* mean it beats everything — it
+has two losses, same as everyone else has some. Three exceptions to learn by
+heart, since they're the only ranks that don't simply follow the ladder:
 
 - **The Spy loses to everything — except the Marshal, who it beats.** Not
   just "weak with one trick": a Spy vs. anyone other than the Marshal loses
@@ -35,9 +36,16 @@ simply follow the ladder above:
 - **The Bomb beats every single rank, Marshal included — except the Miner,
   who defuses it and wins.** The Bomb's ladder position doesn't matter at
   all; this overrides everything else, even the Spy-vs-Marshal exception (a
-  Spy meeting a Bomb loses, same as anyone else would).
+  Spy meeting a Bomb loses, same as anyone else would). So the Marshal's two
+  losses are the Spy and the Bomb — the Miner is the only rank that's never
+  at risk from either of them.
 - **The Bomb never moves once placed** — it's stationed, not carried around
-  looking for encounters.
+  looking for encounters. Worth being upfront that this is an honor-system
+  rule, not something the badge can enforce: proximity detection only knows
+  who's near whom, not who's holding still versus wandering. Same limitation
+  the physical paper-card game already has — nothing stops a Bomb-card
+  holder from walking around there either, beyond "please don't, that's the
+  rule."
 
 If you want the full beats/loses breakdown per rank rather than reasoning it
 out from the two rules above, `python3 -c "from ranks import RANKS; from
