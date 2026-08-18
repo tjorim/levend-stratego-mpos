@@ -4,7 +4,7 @@ Run with `python3 -m pytest test_engine.py` if pytest is installed, or just
 `python3 test_engine.py` directly - no dependencies either way.
 """
 
-from ranks import BOMB, SPY, MAX_LEVEL, RANKS, standard_army
+from ranks import BOMB, SPY, FLAG, MAX_LEVEL, RANKS, standard_army
 from engine import resolve, A_WINS, B_WINS, BOTH_LOSE
 
 MARSHAL = MAX_LEVEL
@@ -47,6 +47,25 @@ def test_standard_army_size_and_composition():
     assert army.count(MARSHAL) == 1
     assert army.count(SPY) == 2
     assert army.count(BOMB) == 6
+
+
+def test_flag_always_loses_to_any_rank():
+    for r in RANKS:
+        assert resolve(FLAG, r["level"]) == B_WINS, r["name"]
+        assert resolve(r["level"], FLAG) == A_WINS, r["name"]
+
+
+def test_flag_loses_to_bomb_too():
+    assert resolve(FLAG, BOMB) == B_WINS
+    assert resolve(BOMB, FLAG) == A_WINS
+
+
+def test_two_flags_meeting_both_lose():
+    assert resolve(FLAG, FLAG) == BOTH_LOSE
+
+
+def test_flag_excluded_from_standard_army():
+    assert FLAG not in standard_army()
 
 
 if __name__ == "__main__":

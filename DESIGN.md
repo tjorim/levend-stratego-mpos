@@ -233,15 +233,138 @@ the badge's main loop, not this module - matching how `RadioAdapter`
 itself takes `rank_level`/`generation` as plain mutable fields rather than
 owning their lifecycle.
 
-## What's still open (game flow - not started)
+## What's implemented (`flag.py`, `test_flag.py`)
 
-Tracked as issues rather than just prose here, so this doesn't drift out of
-sync with actual status:
+**Decided (#4): a badge-carried flag holder, folded into the existing
+rank/encounter machinery** (`ranks.py`, `engine.py`, `reveal.py`,
+`radio.py`) rather than a separate wire concept, a fixed base-beacon
+location, or leaving the flag physical/analog. The physical game's flag is
+a hidden object one team must find - a designated player carrying a badge
+that holds a special `ranks.FLAG` rank instead of a normal army piece is
+the closest digital match, and "find and tag" is already exactly what the
+existing proximity-then-reveal flow (`proximity.py` + `radio.py`) does for
+ordinary encounters, so this needed **no new wire message and no new
+proximity signal**. A fixed base-beacon location was rejected: it would
+conflate "the flag" with `redraw.py`'s base concept (a team's redraw
+point) and drops the "carried, must be tracked down" character the
+physical game has. Staying physical/analog was rejected too, since the
+game needs an actual digital win condition and everything else
+camp-facing is already digitized.
 
-- [#4 Digital equivalent of flag capture](https://github.com/tjorim/levend-stratego-mpos/issues/4)
-- [#5 Who assigns ranks and distributes the army?](https://github.com/tjorim/levend-stratego-mpos/issues/5)
-- [#6 Theming (mafia or otherwise)](https://github.com/tjorim/levend-stratego-mpos/issues/6) -
-  deliberately deferred, not blocking anything above.
+`ranks.py` adds `FLAG` (level `-1`) and `FLAG_RANK` (`is_flag: True`),
+deliberately kept out of `RANKS`/`standard_army()` - it's a single piece
+assigned once per team at kickoff (tied to #5), never part of the shuffled
+59-piece draw pool and never redrawn. `engine.resolve()` makes a Flag
+always lose to any attacker, Bomb included (checked before the Bomb
+special case, since a Flag has no Miner-style defense) - anyone who
+reaches it captures it. The flag holder's badge is otherwise
+indistinguishable from anyone else's: same rank-free presence beacon, same
+one-time reveal exchange, so there's no way to spot it from a distance
+before an encounter actually happens.
+
+Unlike an ordinary loss, a captured flag holder does not get redrawn
+(`redraw.py`) - the game is over for that side. That distinction is what
+`flag.py` actually implements: `captured_sides(my_rank, peer_rank,
+outcome)` inspects an already-resolved encounter (the same shape
+`engine.resolve()` takes/returns) and reports which side(s), if any, just
+had their flag captured (`{"self"}`, `{"peer"}`, both - the rare case of
+two flag holders finding each other - or neither). This is the piece a
+future main loop calls after `radio.RadioAdapter.on_result` fires, to
+decide "redraw as usual" vs. "this side's game just ended," instead of
+duplicating that reasoning inline.
+
+Not solved here, left to #5 (army/rank distribution) and the badge's main
+loop, same split `radio.py`/`redraw.py` already use: which player is
+designated flag holder at kickoff, and what the main loop actually does
+once a capture is recognised (announcing a winner, ending the game, ...).
+
+## What's implemented (`assign.py`, `test_assign.py`)
+
+**Decided (#5): no game-master badge/console, and no shared seed either -
+each badge self-assigns its own kickoff rank locally, independently.** A
+game-master badge was rejected as a single point of failure this project
+has already avoided once for a related problem: `redraw.py` deliberately
+uses per-team base beacons rather than one central authority ("the same
+way you wouldn't run a whole camp off one radio anyway"); a kickoff-only
+game-master still means one specific piece of hardware has to work, be
+present, and be in range of every player at the one moment the whole game
+depends on. A shared seed (the issue's other option) was considered too,
+but the honesty concern it raised - every badge has to actually draw from
+the seed rather than pick a favorable rank - turns out to be no sharper
+than a limitation already accepted in `reveal.py`: there is no shared
+secret to authenticate a reveal message with, so any badge can already
+claim whatever rank it likes regardless of how that rank was assigned. A
+seed buys synchronization at the cost of needing the seed itself
+distributed to every badge somehow, which puts the same "who hands this
+out" question right back on the table - not worth it for a game-integrity
+property this project doesn't otherwise provide.
+
+`assign_kickoff_rank(is_flag_holder, rng=random)` in `assign.py` draws a
+rank the exact same way `redraw.RedrawState.redraw()` already draws a
+post-loss rank - `rng.choice()` over `ranks.standard_army()` - so a badge
+freshly turned on at kickoff and one that just walked back from a loss go
+through the identical code path and the identical with-replacement-odds
+simplification `redraw.py` already documents and accepts. Nothing is
+exchanged over the air for this.
+
+The flag holder (#4) is the one piece not drawn this way: RULES.md is
+explicit the flag holder carries the flag "instead of a normal rank," so
+which player that is has to be decided before this function runs, not
+produced by it - `is_flag_holder=True` returns `ranks.FLAG` directly and
+skips the army draw entirely. Consistent with how team membership already
+works here: `redraw.py` notes each badge is "configured (at kickoff...)
+with the set of its own team's base session ids/macs," i.e. locally, by
+whoever's setting a given badge up - designating a badge as its team's
+flag holder is the same kind of local, human kickoff configuration, not a
+new mechanism.
+
+Also settled by #5: peeking at your own rank before choosing when to
+reveal it is **not mitigated, deliberately**. This project protects
+*other* people from learning your rank before an encounter (see
+`proximity.py`'s rank-free beacon), not you from knowing your own - a
+badge's owner can always look at their own screen, the same way a
+physical-game player can always peek at their own card. Solving "the
+player might stall once they've peeked" would mean policing player
+behavior, not badge state - the same kind of honor-system limit this
+project already accepts for the Bomb's stationary rule (RULES.md).
+
+Wiring `assign_kickoff_rank()` into a badge's actual startup (deciding
+`is_flag_holder` from local config, constructing `radio.RadioAdapter` and
+`redraw.RedrawState` with the result, generation `0`) is left to the
+badge's main loop, matching how `radio.py`/`redraw.py` already leave that
+wiring unbuilt.
+
+## What's implemented (`themes.py`, `test_themes.py`)
+
+**Decided (#6): a theme is a same-shaped `ranks.RANKS`/`FLAG_RANK` list with
+only the `name` fields changed** - exactly what the issue proposed, since
+`engine.py` and everything built on it already key off level numbers and
+the `static`/`beats_highest`/`defuses_bomb`/`is_flag` flags, never names.
+"Maffiakamp" turned out to be undocumented online beyond a one-line pitch
+on Scoutpedia (mafia-family ranks/statuses, no published hierarchy), so
+`MAFIA_RANKS` is a from-scratch name mapping rather than an adapted
+ruleset, picked to keep each rank's actual behavior sensible under its new
+name: an Informant (Spy) is the one rank that brings down the Don
+(Marshal) - betrayal from within getting past a boss's usual defenses
+mirrors `beats_highest`; only the Bomb Squad (Miner) defuses a Car Bomb
+(Bomb); Lookout/Soldier/Enforcer/Capo/Consigliere/Underboss fill the rest
+of the family hierarchy in ladder order; the Flag becomes The Stash, what
+the family is ultimately protecting.
+
+`themes.py` registers themes (currently `"military"` - `ranks.py`'s own
+list, unchanged - and `"mafia"`) in a `THEMES` dict, and `validate_theme()`
+checks a candidate `(ranks, flag)` pair has the same levels, counts, and
+special-case flags as `ranks.RANKS`/`FLAG_RANK` before it's trusted to
+swap in, so a future theme can't accidentally change game behavior by
+mistyping a flag. `test_themes.py` checks both the registered themes
+validate and that `engine.resolve()` produces identical outcomes under
+mafia-numbered ranks, confirming the "engine doesn't change" claim the
+issue made.
+
+Not solved here, left as future work: actually wiring a chosen theme into
+a badge's UI/config (which theme a given camp runs is a kickoff-time
+choice, same kind of local config `redraw.py`/`assign.py` already leave to
+setup), and the issue's "later" half - art/sound per theme.
 
 ## Running the tests
 
@@ -251,10 +374,13 @@ python3 test_proximity.py
 python3 test_reveal.py
 python3 test_radio.py
 python3 test_redraw.py
+python3 test_flag.py
+python3 test_assign.py
+python3 test_themes.py
 ```
 
 No dependencies - runs under plain CPython during design, and the same
-`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py`/`redraw.py`
+`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py`/`redraw.py`/`flag.py`/`assign.py`/`themes.py`
 should run unmodified under MicroPython once wired into a badge app (`radio.py`'s
 `ESPNowTransport` is the one piece that only actually runs on-device -
 see its manual test plan above).

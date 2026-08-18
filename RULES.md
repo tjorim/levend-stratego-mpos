@@ -23,7 +23,12 @@ Marshal (1 per team) → General (4) → Major (6) → Captain (7) → Lieutenan
 → Sergeant (9) → Miner (6) → Scout (10) → Spy (2)
 
 Plus the Bomb (6 per team), which sits outside the ladder entirely — see
-below. 59 ranks per team in total.
+below. 59 ranks per team in total *if* a team's ranks were dealt from one
+shared pool — they're not (see "Getting your rank at the start" below):
+each badge draws its own rank independently, so these counts are the odds
+each badge draws from, not a guarantee your team ends up with exactly one
+Marshal. In practice, with 59-in-a-bag odds, gross imbalances are rare, but
+don't be surprised if your team ends up with zero Marshals, or two.
 
 **The rule: higher rank wins. Equal ranks meeting: both lose.** The Marshal
 is the top of the ladder, but that does *not* mean it beats everything — it
@@ -81,18 +86,37 @@ If your team's base only has one beacon, ask whoever's running the game —
 camps should run more than one per team, so a dead battery or a beacon
 that's briefly out of range doesn't strand anyone mid-game.
 
-## 🚧 Winning the game
+## Winning the game
 
-[Issue #4](https://github.com/tjorim/levend-stratego-mpos/issues/4) — flag
-capture mechanic not decided yet: whether the flag is a badge someone
-carries, a fixed beacon location, or stays a real physical object like the
-original game and only the rank combat is digitized.
+One player per team is secretly designated the flag holder at kickoff — a
+teammate rather than an object, carrying the flag on their badge instead of
+a normal rank. The other team wins by finding and encountering them, the
+same way any other encounter happens: walk close enough, badges compare
+ranks automatically. The flag holder's badge looks exactly like everyone
+else's from a distance — there's no way to spot who's carrying it before
+you actually meet them.
 
-## 🚧 Getting your rank at the start
+The Flag always loses when found, no matter who finds it (even a Bomb
+captures it) — there's no way to defend it by rank. Unlike an ordinary
+loss, a captured flag holder doesn't walk back to base and redraw: that
+team's game is over.
 
-[Issue #5](https://github.com/tjorim/levend-stratego-mpos/issues/5) — not
-decided whether a game-master badge hands out the shuffled army at kickoff,
-or badges self-assign from a shared seed.
+## Getting your rank at the start
+
+There's no game-master badge handing out ranks, and no shared code to punch
+in either — every badge draws its own rank itself, the moment it's turned on
+at kickoff, from the same odds everyone else's badge is drawing from. Whoever
+you're playing against has no way to know what you drew until you actually
+meet them.
+
+One player per team is set up ahead of time (by whoever's running the game)
+as that team's flag holder instead of drawing an army rank — see "Winning
+the game" above.
+
+Nothing stops you from peeking at your own rank the moment it's assigned —
+same as you could always peek at your own card in the paper version. This
+game doesn't try to stop you from knowing your own rank, only from other
+people learning it before they meet you.
 
 ## Setup & logistics
 

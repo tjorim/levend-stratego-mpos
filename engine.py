@@ -23,6 +23,13 @@ def resolve(a, b):
     """
     a_r, b_r = rank(a), rank(b)
 
+    if a_r.get("is_flag") and b_r.get("is_flag"):
+        return BOTH_LOSE  # the rare case of two flag holders finding each other
+    if a_r.get("is_flag"):
+        return B_WINS  # the Flag always loses to any attacker, Bomb included
+    if b_r.get("is_flag"):
+        return A_WINS
+
     if a_r.get("static") and b_r.get("static"):
         return BOTH_LOSE  # two Bombs meeting - shouldn't happen in practice
     if a_r.get("static"):
