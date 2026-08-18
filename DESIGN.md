@@ -334,13 +334,37 @@ Wiring `assign_kickoff_rank()` into a badge's actual startup (deciding
 badge's main loop, matching how `radio.py`/`redraw.py` already leave that
 wiring unbuilt.
 
-## What's still open (game flow - not started)
+## What's implemented (`themes.py`, `test_themes.py`)
 
-Tracked as issues rather than just prose here, so this doesn't drift out of
-sync with actual status:
+**Decided (#6): a theme is a same-shaped `ranks.RANKS`/`FLAG_RANK` list with
+only the `name` fields changed** - exactly what the issue proposed, since
+`engine.py` and everything built on it already key off level numbers and
+the `static`/`beats_highest`/`defuses_bomb`/`is_flag` flags, never names.
+"Maffiakamp" turned out to be undocumented online beyond a one-line pitch
+on Scoutpedia (mafia-family ranks/statuses, no published hierarchy), so
+`MAFIA_RANKS` is a from-scratch name mapping rather than an adapted
+ruleset, picked to keep each rank's actual behavior sensible under its new
+name: an Informant (Spy) is the one rank that brings down the Don
+(Marshal) - betrayal from within getting past a boss's usual defenses
+mirrors `beats_highest`; only the Bomb Squad (Miner) defuses a Car Bomb
+(Bomb); Lookout/Soldier/Enforcer/Capo/Consigliere/Underboss fill the rest
+of the family hierarchy in ladder order; the Flag becomes The Stash, what
+the family is ultimately protecting.
 
-- [#6 Theming (mafia or otherwise)](https://github.com/tjorim/levend-stratego-mpos/issues/6) -
-  deliberately deferred, not blocking anything above.
+`themes.py` registers themes (currently `"military"` - `ranks.py`'s own
+list, unchanged - and `"mafia"`) in a `THEMES` dict, and `validate_theme()`
+checks a candidate `(ranks, flag)` pair has the same levels, counts, and
+special-case flags as `ranks.RANKS`/`FLAG_RANK` before it's trusted to
+swap in, so a future theme can't accidentally change game behavior by
+mistyping a flag. `test_themes.py` checks both the registered themes
+validate and that `engine.resolve()` produces identical outcomes under
+mafia-numbered ranks, confirming the "engine doesn't change" claim the
+issue made.
+
+Not solved here, left as future work: actually wiring a chosen theme into
+a badge's UI/config (which theme a given camp runs is a kickoff-time
+choice, same kind of local config `redraw.py`/`assign.py` already leave to
+setup), and the issue's "later" half - art/sound per theme.
 
 ## Running the tests
 
@@ -352,10 +376,11 @@ python3 test_radio.py
 python3 test_redraw.py
 python3 test_flag.py
 python3 test_assign.py
+python3 test_themes.py
 ```
 
 No dependencies - runs under plain CPython during design, and the same
-`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py`/`redraw.py`/`flag.py`/`assign.py`
+`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py`/`redraw.py`/`flag.py`/`assign.py`/`themes.py`
 should run unmodified under MicroPython once wired into a badge app (`radio.py`'s
 `ESPNowTransport` is the one piece that only actually runs on-device -
 see its manual test plan above).
