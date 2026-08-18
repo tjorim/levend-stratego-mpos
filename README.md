@@ -7,8 +7,9 @@ cards. Early design/prototype stage for a future Fri3d Camp edition.
 
 **Status:** core rank hierarchy + encounter-resolution engine
 (`ranks.py`, `engine.py`), proximity/closeness detection (`proximity.py`),
-reveal-exchange freshness / anti-replay (`reveal.py`), and the ESP-NOW radio
-adapter (`radio.py`) done and tested. Game flow and theming not started yet.
+reveal-exchange freshness / anti-replay (`reveal.py`), the ESP-NOW radio
+adapter (`radio.py`), and the base-beacon redraw flow (`redraw.py`) done
+and tested. Flag capture, rank distribution, and theming not started yet.
 
 - [`RULES.md`](RULES.md) — how the game actually plays, for whoever's running
   or playing it at camp.
@@ -21,4 +22,5 @@ python3 test_engine.py
 python3 test_proximity.py
 python3 test_reveal.py
 python3 test_radio.py
+python3 test_redraw.py
 ```
