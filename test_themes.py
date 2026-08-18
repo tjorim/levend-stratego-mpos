@@ -40,7 +40,7 @@ def test_validate_theme_rejects_wrong_count():
     broken[0]["count"] += 1
     try:
         validate_theme(broken, MAFIA_FLAG)
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
 
@@ -52,7 +52,7 @@ def test_validate_theme_rejects_missing_special_flag():
             del r["defuses_bomb"]
     try:
         validate_theme(broken, MAFIA_FLAG)
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
 
@@ -61,7 +61,27 @@ def test_validate_theme_rejects_missing_level():
     broken = [r for r in MAFIA_RANKS if r["level"] != 0]
     try:
         validate_theme(broken, MAFIA_FLAG)
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+
+
+def test_validate_theme_rejects_duplicate_levels():
+    broken = [dict(r) for r in MAFIA_RANKS if r["level"] != 9]
+    broken.append(dict(MAFIA_RANKS[0]))  # level 0 now appears twice, level 9 missing
+    try:
+        validate_theme(broken, MAFIA_FLAG)
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+
+
+def test_validate_theme_rejects_a_normal_rank_marked_as_flag():
+    broken = [dict(r) for r in MAFIA_RANKS]
+    broken[0]["is_flag"] = True
+    try:
+        validate_theme(broken, MAFIA_FLAG)
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
 
@@ -69,7 +89,7 @@ def test_validate_theme_rejects_missing_level():
 def test_validate_theme_rejects_non_flag_flag_entry():
     try:
         validate_theme(MAFIA_RANKS, {"level": FLAG, "name": "The Stash"})
-        assert False, "expected ValueError"
+        raise AssertionError("expected ValueError")
     except ValueError:
         pass
 

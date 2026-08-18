@@ -23,7 +23,12 @@ Marshal (1 per team) → General (4) → Major (6) → Captain (7) → Lieutenan
 → Sergeant (9) → Miner (6) → Scout (10) → Spy (2)
 
 Plus the Bomb (6 per team), which sits outside the ladder entirely — see
-below. 59 ranks per team in total.
+below. 59 ranks per team in total *if* a team's ranks were dealt from one
+shared pool — they're not (see "Getting your rank at the start" below):
+each badge draws its own rank independently, so these counts are the odds
+each badge draws from, not a guarantee your team ends up with exactly one
+Marshal. In practice, with 59-in-a-bag odds, gross imbalances are rare, but
+don't be surprised if your team ends up with zero Marshals, or two.
 
 **The rule: higher rank wins. Equal ranks meeting: both lose.** The Marshal
 is the top of the ladder, but that does *not* mean it beats everything — it

@@ -54,7 +54,7 @@ THEMES = {
     "mafia": (MAFIA_RANKS, MAFIA_FLAG),
 }
 
-_FLAG_KEYS = {"static", "beats_highest", "defuses_bomb"}
+_FLAG_KEYS = {"static", "beats_highest", "defuses_bomb", "is_flag"}
 
 
 def validate_theme(theme_ranks, theme_flag):
@@ -66,6 +66,9 @@ def validate_theme(theme_ranks, theme_flag):
     """
     by_level = {r["level"]: r for r in RANKS}
     theme_by_level = {r["level"]: r for r in theme_ranks}
+
+    if len(theme_by_level) != len(theme_ranks):
+        raise ValueError("theme ranks contain duplicate levels")
 
     if theme_by_level.keys() != by_level.keys():
         raise ValueError(
