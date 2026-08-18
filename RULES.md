@@ -96,11 +96,22 @@ captures it) — there's no way to defend it by rank. Unlike an ordinary
 loss, a captured flag holder doesn't walk back to base and redraw: that
 team's game is over.
 
-## 🚧 Getting your rank at the start
+## Getting your rank at the start
 
-[Issue #5](https://github.com/tjorim/levend-stratego-mpos/issues/5) — not
-decided whether a game-master badge hands out the shuffled army at kickoff,
-or badges self-assign from a shared seed.
+There's no game-master badge handing out ranks, and no shared code to punch
+in either — every badge draws its own rank itself, the moment it's turned on
+at kickoff, from the same odds everyone else's badge is drawing from. Whoever
+you're playing against has no way to know what you drew until you actually
+meet them.
+
+One player per team is set up ahead of time (by whoever's running the game)
+as that team's flag holder instead of drawing an army rank — see "Winning
+the game" above.
+
+Nothing stops you from peeking at your own rank the moment it's assigned —
+same as you could always peek at your own card in the paper version. This
+game doesn't try to stop you from knowing your own rank, only from other
+people learning it before they meet you.
 
 ## Setup & logistics
 
