@@ -141,7 +141,7 @@ Wire format is two pipe-delimited message types (no json dependency, keeps
 payloads well under ESP-NOW's ~250 byte limit): a beacon is
 `B|<mac>|<session>`, a reveal is
 `R|<mac>|<session>|<generation>|<rank_level>|<encounter_key>` - the fields
-#2 settled, in the order `reveal.py` expects them.
+issue `#2` settled, in the order `reveal.py` expects them.
 
 ### Manual/on-device test plan
 
@@ -200,7 +200,7 @@ presence beacon `radio.py` already defines (`encode_beacon()`), so
 `proximity.ProximityTracker` sees it exactly like a player peer with no
 changes to that module needed. What makes something a *base* rather than a
 player is purely local: each badge is configured (at kickoff, alongside
-#5's rank distribution) with the set of its own team's base session ids/
+issue `#5`'s rank distribution) with the set of its own team's base session ids/
 macs.
 
 Two pieces, both pure/testable in `redraw.py`:
@@ -224,7 +224,7 @@ distribution): `redraw()` draws independently each time rather than
 tracking a shared pool of pieces already issued, so in principle (rare
 with 59 pieces per side) two badges could simultaneously hold the same
 rank after redraws - same as could already happen with the initial deal if
-#5's answer doesn't track a shared pool either.
+issue `#5`'s answer doesn't track a shared pool either.
 
 Wiring `redraw.py` into `radio.RadioAdapter` (disarming on a losing
 `on_result`, redrawing once `BaseTracker.at_base()` is true, and copying

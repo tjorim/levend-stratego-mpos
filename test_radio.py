@@ -8,6 +8,7 @@ Run with `python3 -m pytest test_radio.py` or `python3 test_radio.py`.
 
 from proximity import CLOSE_DBM, CLOSE_STREAK
 from engine import A_WINS, B_WINS, BOTH_LOSE
+from reveal import encounter_key
 from radio import RadioAdapter, encode_beacon, encode_reveal, decode, BEACON, REVEAL
 
 MAC_A = "aa:bb:cc:dd:ee:01"
@@ -210,6 +211,66 @@ def test_replayed_reveal_does_not_resolve_a_second_time():
     )
     a.on_receive(MAC_B, CLOSE_DBM, last_reveal)
     assert call_count["a"] == 1
+
+
+def test_encounter_state_does_not_carry_across_a_reboot_with_unchanged_generation():
+    """A reboots (fresh session) while still in range, without a redraw -
+    same rank/generation as before, just a power-cycle. RSSI never drops, so
+    streak alone never hits 0; the session change itself must still be
+    enough to clear the prior (resolved) encounter, or the new approach's
+    exchange gets silently suppressed forever."""
+    world = World()
+    a = RadioAdapter(MAC_A, "session-a", rank_level=5, generation=0, send=None)
+    b = RadioAdapter(MAC_B, "session-b", rank_level=3, generation=0, send=None)
+    world.add(MAC_A, a)
+    world.add(MAC_B, b)
+
+    call_count = {"a": 0, "b": 0}
+    a.on_result = lambda mac, outcome: call_count.__setitem__("a", call_count["a"] + 1)
+    b.on_result = lambda mac, outcome: call_count.__setitem__("b", call_count["b"] + 1)
+
+    close_approach(world)
+    assert call_count == {"a": 1, "b": 1}
+
+    a2 = RadioAdapter(MAC_A, "session-a-2", rank_level=5, generation=0, send=None)
+    a2.on_result = lambda mac, outcome: call_count.__setitem__("a", call_count["a"] + 1)
+    world.add(MAC_A, a2)
+
+    close_approach(world)
+    assert call_count == {"a": 2, "b": 2}
+
+
+def test_reveal_naming_a_session_other_than_the_peers_current_one_is_rejected():
+    """Even a reveal that would otherwise pass RevealGuard on its own (a
+    correct key for that pairing, a generation the guard has never seen)
+    must still be rejected if it names a session other than the one radio.py
+    currently has on file for that mac - closes the gap where a captured
+    pre-reboot reveal could otherwise slip through and resolve (or corrupt)
+    the current approach."""
+    world = World()
+    b = RadioAdapter(MAC_B, "session-b", rank_level=3, generation=0, send=None)
+    world.add(MAC_B, b)
+
+    call_count = {"b": 0}
+    b.on_result = lambda mac, outcome: call_count.__setitem__("b", call_count["b"] + 1)
+
+    # B learns A is close under session "session-a-2" (e.g. after a reboot)
+    for _ in range(CLOSE_STREAK):
+        b.on_receive(MAC_A, CLOSE_DBM, encode_beacon(MAC_A, "session-a-2"))
+
+    # a reveal naming a *different*, older session for the same mac arrives -
+    # a correct key for that (stale) pairing, an unseen generation - would
+    # pass RevealGuard alone, but must still be rejected here
+    stale_key = encounter_key("session-b", "session-a")
+    stale_reveal = encode_reveal(MAC_A, "session-a", 0, 9, stale_key)
+    b.on_receive(MAC_A, CLOSE_DBM, stale_reveal)
+    assert call_count["b"] == 0
+
+    # the genuinely current-session reveal still resolves normally
+    fresh_key = encounter_key("session-b", "session-a-2")
+    fresh_reveal = encode_reveal(MAC_A, "session-a-2", 0, 9, fresh_key)
+    b.on_receive(MAC_A, CLOSE_DBM, fresh_reveal)
+    assert call_count["b"] == 1
 
 
 if __name__ == "__main__":

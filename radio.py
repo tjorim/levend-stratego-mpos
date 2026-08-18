@@ -156,11 +156,15 @@ class RadioAdapter:
             self._on_reveal(mac, msg)
 
     def _on_beacon(self, mac, rssi, msg):
+        prior = self.tracker.peers.get(mac)
+        session_changed = prior is not None and prior.session != msg["session"]
         peer = self.tracker.seen(mac, msg["session"], rssi)
-        if peer.streak == 0:
-            # stepped apart (or a fresh/rebooted session) - drop any past
+        if session_changed or peer.streak == 0:
+            # stepped apart, or a fresh/rebooted session (checked directly
+            # rather than inferred from streak==0: a reboot while still in
+            # range doesn't reset streak to 0, it becomes 1) - drop any past
             # encounter so a future approach starts clean rather than being
-            # blocked by a stale "already sent"/"already resolved" state
+            # blocked by (or trusting) stale state from before
             self._encounters.pop(mac, None)
         self._maybe_start_reveal()
 
@@ -182,6 +186,14 @@ class RadioAdapter:
         self._maybe_resolve(enc)
 
     def _on_reveal(self, mac, msg):
+        peer = self.tracker.peers.get(mac)
+        if peer is None or peer.session != msg["session"]:
+            # not from the peer's currently tracked live session - stale or
+            # out of order. RevealGuard's encounter_key alone can't catch
+            # this: a reveal captured before a peer's reboot still carries a
+            # technically-matching key for that same (now stale) pairing, so
+            # only the live session we actually have on file can gate it.
+            return
         if not self.guard.accept(
             mac, msg["session"], msg["generation"], msg["encounter_key"]
         ):

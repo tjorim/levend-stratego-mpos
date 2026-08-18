@@ -83,6 +83,20 @@ def test_independent_peers_tracked_separately():
     assert guard.accept(MAC_C, "c-session", generation=0, received_key=key_c) is True
 
 
+def test_generation_floor_survives_a_different_session_being_seen_in_between():
+    guard = RevealGuard(my_session="b-session")
+    key1 = encounter_key("b-session", "a-session")
+    assert guard.accept(MAC_A, "a-session", generation=3, received_key=key1) is True
+
+    # a different, newer session for the same mac is seen (e.g. a reboot)
+    key2 = encounter_key("b-session", "a-session-2")
+    assert guard.accept(MAC_A, "a-session-2", generation=0, received_key=key2) is True
+
+    # replaying the *original* session's old message must still be rejected -
+    # the newer session must not have silently wiped its generation floor
+    assert guard.accept(MAC_A, "a-session", generation=3, received_key=key1) is False
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

@@ -64,7 +64,7 @@ class RevealGuard:
 
     def __init__(self, my_session):
         self.my_session = my_session
-        self._last_seen = {}  # mac -> (peer_session, highest accepted generation)
+        self._last_seen = {}  # (mac, peer_session) -> highest accepted generation
 
     def accept(self, mac, peer_session, generation, received_key):
         """Validate one inbound reveal from `mac`.
@@ -77,11 +77,15 @@ class RevealGuard:
         if received_key != encounter_key(self.my_session, peer_session):
             return False  # not a key for *this* pairing of live sessions
 
-        seen = self._last_seen.get(mac)
-        if seen is not None:
-            seen_session, seen_generation = seen
-            if seen_session == peer_session and generation <= seen_generation:
-                return False  # same badge instance, no newer than one we already used
+        # keyed per (mac, session) rather than a single slot per mac, so a
+        # newer session for this peer (e.g. after a reboot) can't silently
+        # overwrite - and thus lose - the generation floor already recorded
+        # for an older session; a stale reveal from that older session must
+        # keep being rejected on its own terms even after a newer one is seen
+        cache_key = (mac, peer_session)
+        seen_generation = self._last_seen.get(cache_key)
+        if seen_generation is not None and generation <= seen_generation:
+            return False  # same badge instance, no newer than one we already used
 
-        self._last_seen[mac] = (peer_session, generation)
+        self._last_seen[cache_key] = generation
         return True
