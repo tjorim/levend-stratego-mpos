@@ -81,12 +81,20 @@ If your team's base only has one beacon, ask whoever's running the game —
 camps should run more than one per team, so a dead battery or a beacon
 that's briefly out of range doesn't strand anyone mid-game.
 
-## 🚧 Winning the game
+## Winning the game
 
-[Issue #4](https://github.com/tjorim/levend-stratego-mpos/issues/4) — flag
-capture mechanic not decided yet: whether the flag is a badge someone
-carries, a fixed beacon location, or stays a real physical object like the
-original game and only the rank combat is digitized.
+One player per team is secretly designated the flag holder at kickoff — a
+teammate rather than an object, carrying the flag on their badge instead of
+a normal rank. The other team wins by finding and encountering them, the
+same way any other encounter happens: walk close enough, badges compare
+ranks automatically. The flag holder's badge looks exactly like everyone
+else's from a distance — there's no way to spot who's carrying it before
+you actually meet them.
+
+The Flag always loses when found, no matter who finds it (even a Bomb
+captures it) — there's no way to defend it by rank. Unlike an ordinary
+loss, a captured flag holder doesn't walk back to base and redraw: that
+team's game is over.
 
 ## 🚧 Getting your rank at the start
 

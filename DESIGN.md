@@ -233,12 +233,56 @@ the badge's main loop, not this module - matching how `RadioAdapter`
 itself takes `rank_level`/`generation` as plain mutable fields rather than
 owning their lifecycle.
 
+## What's implemented (`flag.py`, `test_flag.py`)
+
+**Decided (#4): a badge-carried flag holder, folded into the existing
+rank/encounter machinery** (`ranks.py`, `engine.py`, `reveal.py`,
+`radio.py`) rather than a separate wire concept, a fixed base-beacon
+location, or leaving the flag physical/analog. The physical game's flag is
+a hidden object one team must find - a designated player carrying a badge
+that holds a special `ranks.FLAG` rank instead of a normal army piece is
+the closest digital match, and "find and tag" is already exactly what the
+existing proximity-then-reveal flow (`proximity.py` + `radio.py`) does for
+ordinary encounters, so this needed **no new wire message and no new
+proximity signal**. A fixed base-beacon location was rejected: it would
+conflate "the flag" with `redraw.py`'s base concept (a team's redraw
+point) and drops the "carried, must be tracked down" character the
+physical game has. Staying physical/analog was rejected too, since the
+game needs an actual digital win condition and everything else
+camp-facing is already digitized.
+
+`ranks.py` adds `FLAG` (level `-1`) and `FLAG_RANK` (`is_flag: True`),
+deliberately kept out of `RANKS`/`standard_army()` - it's a single piece
+assigned once per team at kickoff (tied to #5), never part of the shuffled
+59-piece draw pool and never redrawn. `engine.resolve()` makes a Flag
+always lose to any attacker, Bomb included (checked before the Bomb
+special case, since a Flag has no Miner-style defense) - anyone who
+reaches it captures it. The flag holder's badge is otherwise
+indistinguishable from anyone else's: same rank-free presence beacon, same
+one-time reveal exchange, so there's no way to spot it from a distance
+before an encounter actually happens.
+
+Unlike an ordinary loss, a captured flag holder does not get redrawn
+(`redraw.py`) - the game is over for that side. That distinction is what
+`flag.py` actually implements: `captured_sides(my_rank, peer_rank,
+outcome)` inspects an already-resolved encounter (the same shape
+`engine.resolve()` takes/returns) and reports which side(s), if any, just
+had their flag captured (`{"self"}`, `{"peer"}`, both - the rare case of
+two flag holders finding each other - or neither). This is the piece a
+future main loop calls after `radio.RadioAdapter.on_result` fires, to
+decide "redraw as usual" vs. "this side's game just ended," instead of
+duplicating that reasoning inline.
+
+Not solved here, left to #5 (army/rank distribution) and the badge's main
+loop, same split `radio.py`/`redraw.py` already use: which player is
+designated flag holder at kickoff, and what the main loop actually does
+once a capture is recognised (announcing a winner, ending the game, ...).
+
 ## What's still open (game flow - not started)
 
 Tracked as issues rather than just prose here, so this doesn't drift out of
 sync with actual status:
 
-- [#4 Digital equivalent of flag capture](https://github.com/tjorim/levend-stratego-mpos/issues/4)
 - [#5 Who assigns ranks and distributes the army?](https://github.com/tjorim/levend-stratego-mpos/issues/5)
 - [#6 Theming (mafia or otherwise)](https://github.com/tjorim/levend-stratego-mpos/issues/6) -
   deliberately deferred, not blocking anything above.
@@ -251,10 +295,11 @@ python3 test_proximity.py
 python3 test_reveal.py
 python3 test_radio.py
 python3 test_redraw.py
+python3 test_flag.py
 ```
 
 No dependencies - runs under plain CPython during design, and the same
-`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py`/`redraw.py`
+`ranks.py`/`engine.py`/`proximity.py`/`reveal.py`/`radio.py`/`redraw.py`/`flag.py`
 should run unmodified under MicroPython once wired into a badge app (`radio.py`'s
 `ESPNowTransport` is the one piece that only actually runs on-device -
 see its manual test plan above).

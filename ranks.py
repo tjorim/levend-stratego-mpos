@@ -27,9 +27,17 @@ RANKS = [
     {"level": 9, "name": "Marshal", "count": 1},
 ]
 
+# The Flag (settles #4): kept out of RANKS/standard_army() on purpose - it's
+# a single designated piece assigned once per team at kickoff (tied to #5),
+# never part of the shuffled 59-piece draw pool and never redrawn. See
+# flag.py for what "is_flag" means to the encounter engine.
+FLAG = -1
+FLAG_RANK = {"level": FLAG, "name": "Flag", "is_flag": True}
+
 MAX_LEVEL = max(r["level"] for r in RANKS)
 
 _BY_LEVEL = {r["level"]: r for r in RANKS}
+_BY_LEVEL[FLAG] = FLAG_RANK
 
 
 def rank(level):
